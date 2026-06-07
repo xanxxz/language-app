@@ -1,7 +1,11 @@
 import { View, Text, TextInput, Pressable, StyleSheet, ScrollView } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect} from 'react';
 import { colors } from '../theme/colors';
 import { createFullLesson } from '../api/api';
+import {
+  getLessons,
+  deleteLessonApi,
+} from '../api/api';
 
 export default function AdminScreen() {
   const [title, setTitle] = useState('');
@@ -16,6 +20,7 @@ export default function AdminScreen() {
   const [question, setQuestion] = useState('');
   const [correctAnswer, setCorrectAnswer] = useState('');
   const [options, setOptions] = useState('');
+  const [lessons, setLessons] = useState<any[]>([]);
 
   // ➕ Добавить шаг в массив
   const handleAddStep = () => {
@@ -72,6 +77,7 @@ export default function AdminScreen() {
         steps,
       });
 
+      await loadLessons();
       alert('Урок создан 🚀');
 
       // очистка
@@ -81,6 +87,27 @@ export default function AdminScreen() {
       alert('Ошибка создания');
     }
   };
+
+  const loadLessons = async () => {
+    const data = await getLessons();
+    setLessons(data);
+  };
+
+  const handleDeleteLesson = async (id: number) => {
+    try {
+      await deleteLessonApi(id);
+
+      await loadLessons();
+
+      alert('Урок удалён');
+    } catch {
+      alert('Ошибка удаления');
+    }
+  };
+
+  useEffect(() => {
+    loadLessons();
+  }, []);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -187,6 +214,31 @@ export default function AdminScreen() {
       <Pressable style={styles.button} onPress={handleCreateLesson}>
         <Text style={styles.buttonText}>Создать урок</Text>
       </Pressable>
+
+      <Text style={styles.section}>Все уроки</Text>
+
+      {lessons.map((lesson) => (
+        <View key={lesson.id} style={styles.preview}>
+          <Text>
+            {lesson.language_code?.toUpperCase()} | {lesson.order}
+          </Text>
+
+          <Text>{lesson.title}</Text>
+
+          <Text>
+            {lesson.locked ? '🔒 Locked' : '🔓 Open'}
+          </Text>
+
+          <Pressable
+            style={[styles.button, { marginTop: 10 }]}
+            onPress={() => handleDeleteLesson(lesson.id)}
+          >
+            <Text style={styles.buttonText}>
+              Удалить урок
+            </Text>
+          </Pressable>
+        </View>
+      ))}
     </ScrollView>
   );
 }
